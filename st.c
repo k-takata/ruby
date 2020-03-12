@@ -100,14 +100,18 @@
 
 */
 
-#ifdef NOT_RUBY
-#include "regint.h"
-#include "st.h"
-#else
+#if !defined(RUBY) && defined(RUBY_EXPORT)
+#define RUBY
+#endif
+
+#ifdef RUBY
 #include "internal.h"
 #include "internal/bits.h"
 #include "internal/hash.h"
 #include "internal/sanitizers.h"
+#else
+#include "regint.h"
+#include "st.h"
 #endif
 
 #include <stdio.h>
@@ -171,7 +175,16 @@ static const struct st_hash_type type_strcasehash = {
 #define calloc ruby_xcalloc
 #define realloc ruby_xrealloc
 #define free ruby_xfree
+#else /* RUBY */
+#ifndef FALSE
+#define FALSE	0
 #endif
+#ifndef TRUE
+#define TRUE	1
+#endif
+#define MEMCPY(p1,p2,type,n)	memcpy((p1), (p2), sizeof(type)*(n))
+#define NO_SANITIZE(s,decl)	decl
+#endif /* RUBY */
 
 #define EQUAL(tab,x,y) ((x) == (y) || (*(tab)->type->compare)((x),(y)) == 0)
 #define PTR_EQUAL(tab, ptr, hash_val, key_) \
@@ -342,10 +355,17 @@ do_hash(st_data_t key, st_table *tab)
 static int
 get_power2(st_index_t size)
 {
-    unsigned int n = ST_INDEX_BITS - nlz_intptr(size);
+    unsigned int n;
+
+#ifdef RUBY
+    n = ST_INDEX_BITS - nlz_intptr(size);
+#else
+    for (n = 0; size != 0; n++)
+        size >>= 1;
+#endif
     if (n <= MAX_POWER2)
         return n < MINIMAL_POWER2 ? MINIMAL_POWER2 : n;
-#ifndef NOT_RUBY
+#ifdef RUBY
     /* Ran out of the table entries */
     rb_raise(rb_eRuntimeError, "st_table too big");
 #endif

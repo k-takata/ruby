@@ -14,7 +14,28 @@ extern "C" {
 #endif
 #endif
 
+#if !defined(RUBY) && defined(RUBY_EXPORT)
+#define RUBY
+#endif
+
+#ifdef RUBY
 #include "ruby/defines.h"
+#else /* RUBY */
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#ifndef RUBY_SYMBOL_EXPORT_BEGIN
+#define RUBY_SYMBOL_EXPORT_BEGIN
+#define RUBY_SYMBOL_EXPORT_END
+#endif
+#ifndef CONSTFUNC
+#define CONSTFUNC(decl)	decl
+#define PUREFUNC(decl)	decl
+#endif
+#endif /* RUBY */
 
 RUBY_SYMBOL_EXPORT_BEGIN
 
@@ -33,9 +54,6 @@ typedef unsigned LONG_LONG st_data_t;
 # else
 #  define CHAR_BIT 8
 # endif
-#endif
-#ifndef _
-# define _(args) args
 #endif
 #ifndef ANYARGS
 # ifdef __cplusplus
@@ -183,7 +201,9 @@ CONSTFUNC(st_index_t rb_st_hash_end(st_index_t h));
 CONSTFUNC(st_index_t rb_st_hash_start(st_index_t h));
 #define st_hash_start(h) ((st_index_t)(h))
 
+#ifdef RUBY
 void rb_hash_bulk_insert_into_st_table(long, const VALUE *, VALUE);
+#endif
 
 RUBY_SYMBOL_EXPORT_END
 
